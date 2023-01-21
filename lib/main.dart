@@ -173,58 +173,80 @@ class _HomeScreenState extends State<HomeScreen> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-          appBar: AppBar(
-            backgroundColor: const Color(0xFFFCCB01),
-            title: const Text("Home Page"),
-            titleTextStyle: const TextStyle(
-              fontFamily: "Muli-Bold",
-              fontSize: 20,
-            ),
-            bottom: const TabBar(
-              tabs: <Widget>[
-                Tab(text: "Home"),
-                Tab(text: "Camera"),
-              ],
-            ),
-            leading: Builder(builder: (BuildContext context) {
-              return IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () {
-                  Scaffold.of(context).openDrawer();
-                },
-              );
-            }),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFFCCB01),
+          title: const Text("Home Page"),
+          titleTextStyle: const TextStyle(
+            fontFamily: "Muli-Bold",
+            fontSize: 20,
           ),
-          body: TabBarView(
-            children: <Widget>[
-              Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                      image: AssetImage("images/bg2.jpg"),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                          Color(0xdd1C4274), BlendMode.darken)),
-                ),
-                child: const Center(
-                  child: Text("Hi"),
-                ),
-              ),
-              Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
+          bottom: const TabBar(
+            tabs: <Widget>[
+              Tab(text: "Home"),
+              Tab(text: "Camera"),
+            ],
+          ),
+          leading: Builder(builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          }),
+        ),
+        body: TabBarView(
+          children: <Widget>[
+            Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
                     image: AssetImage("images/bg2.jpg"),
                     fit: BoxFit.cover,
                     colorFilter:
-                        ColorFilter.mode(Color(0xdd1C4274), BlendMode.darken),
-                  ),
-                ),
-                child: const Center(
-                  child: QrCodeScanner(),
+                        ColorFilter.mode(Color(0xdd1C4274), BlendMode.darken)),
+              ),
+              child: const Center(
+                child: Text("Hi"),
+              ),
+            ),
+            Container(
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage("images/bg2.jpg"),
+                  fit: BoxFit.cover,
+                  colorFilter:
+                      ColorFilter.mode(Color(0xdd1C4274), BlendMode.darken),
                 ),
               ),
-            ],
+              child: const Center(
+                child: QrCodeScanner(),
+              ),
+            ),
+          ],
+        ),
+        drawer: Drawer(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(
+                  height: 50,
+                ),
+                ListTile(
+                  leading: const Icon(Icons.home),
+                  title: const Text("Home"),
+                  onTap: () => null,
+                ),
+                ListTile(
+                  leading: const Icon(Icons.logout),
+                  title: const Text("Logout"),
+                  onTap: () => null,
+                ),
+              ],
+            ),
           ),
-          drawer: const Drawer()),
+        ),
+      ),
     );
   }
 }
