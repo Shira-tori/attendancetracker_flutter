@@ -1,9 +1,10 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:mysql1/mysql1.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:attendify_/sql.dart';
 
-void main() {
+void main() async {
   runApp(const AttendanceApp());
 }
 
@@ -12,8 +13,11 @@ class AttendanceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: LoginPage(),
+    return MaterialApp(
+      home: const LoginPage(),
+      routes: {
+        '/homescreen': (context) => const HomeScreen(),
+      },
       debugShowCheckedModeBanner: false,
     );
   }
@@ -26,9 +30,12 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
+  bool failed = false;
+  bool loading = false;
+  var db = Database();
 
   @override
   void dispose() {
@@ -68,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
                   color: Color(0xFFBFDFF5),
                 ),
               ),
-              const SizedBox(height: 47),
+              const SizedBox(height: 26),
               SizedBox(
                 width: 300,
                 child: TextField(
@@ -136,62 +143,74 @@ class _LoginPageState extends State<LoginPage> {
               SizedBox(
                 width: 300,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      _createRoute(),
-                    );
+                  onPressed: () async {
+                    try {
+                      setState(() {
+                        loading = true;
+                      });
+                      Database db = Database();
+                      var conn = await db.getConnection();
+                      var result = await conn.query(
+                          'SELECT username, password FROM users_tbl WHERE username = "${usernameController.text}" AND password = "${passwordController.text}"');
+                      if (result.isNotEmpty) {
+                        Navigator.of(context).pushNamed("/homescreen");
+                      } else {
+                        setState(() {
+                          failed = true;
+                          loading = false;
+                        });
+                      }
+                    } catch (e) {
+                      setState(() {
+                        failed = true;
+                        loading = false;
+                      });
+                    }
                   },
                   style: ButtonStyle(
-                      backgroundColor: MaterialStateColor.resolveWith(
-                          (states) => const Color(0xFFFCCB01))),
-                  child: const Text(
-                    "Login",
-                    textAlign: TextAlign.center,
+                    backgroundColor: MaterialStateColor.resolveWith(
+                      (states) => const Color(0xFFFCCB01),
+                    ),
                   ),
+                  child: loading == false
+                      ? const Text(
+                          "Login",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Color(0xdd1C4274),
+                            fontFamily: "Muli-Bold",
+                            fontSize: 15,
+                          ),
+                        )
+                      : Container(
+                          height: 20.0,
+                          width: 20.0,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2.0,
+                          ),
+                        ),
                 ),
-              )
+              ),
+              const SizedBox(
+                height: 10,
+              ),
+              failed == true
+                  ? const SizedBox(
+                      width: 300,
+                      child: Text(
+                        "An error has occured.",
+                        style: TextStyle(
+                            color: Colors.red, fontFamily: "Muli-Bold"),
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : const SizedBox.shrink()
             ],
           ),
         ),
       ),
     );
   }
-}
-
-Route _createRoute() {
-  return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(0.0, 1.0);
-      const end = Offset.zero;
-      const curve = Curves.ease;
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      final offsetAnimation = animation.drive(tween);
-
-      return SlideTransition(
-        position: offsetAnimation,
-        child: child,
-      );
-    },
-  );
-}
-
-Route _logoutRoute() {
-  return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => const LoginPage(),
-    transitionsBuilder: ((context, animation, secondaryAnimation, child) {
-      const begin = Offset(0.0, 1.0);
-      const end = Offset.zero;
-      const curve = Curves.ease;
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      final offsetAnimation = animation.drive(tween);
-
-      return SlideTransition(
-        position: offsetAnimation,
-        child: child,
-      );
-    }),
-  );
 }
 
 class HomeScreen extends StatefulWidget {
@@ -259,6 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         drawer: Drawer(
+          backgroundColor: const Color(0xFFFCCB01),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -268,13 +288,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.home),
-                  title: const Text("Home"),
+                  title: const Text(
+                    "Home",
+                    style: TextStyle(
+                      fontFamily: "Muli-Bold",
+                      color: Colors.white,
+                    ),
+                  ),
                   onTap: () => null,
                 ),
                 ListTile(
                   leading: const Icon(Icons.logout),
                   title: const Text("Logout"),
-                  onTap: () => Navigator.of(context).push(_logoutRoute()),
+                  onTap: () {
+                    Navigator.of(context).pushNamedAndRemoveUntil(
+                        "/", (Route<dynamic> route) => false);
+                  },
                 ),
               ],
             ),
@@ -294,7 +323,7 @@ class QrCodeScanner extends StatefulWidget {
 
 class _QrCodeScannerState extends State<QrCodeScanner> {
   Barcode? result;
-  QRViewController? controller;
+  static QRViewController? controller;
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
 
   @override
@@ -309,7 +338,24 @@ class _QrCodeScannerState extends State<QrCodeScanner> {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: _buildQrView(context),
+      child: Stack(
+        children: [
+          _buildQrView(context),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ElevatedButton(
+              style: ButtonStyle(
+                backgroundColor: MaterialStateColor.resolveWith(
+                    (states) => const Color(0xFFFCCB01)),
+              ),
+              onPressed: () async {
+                await controller?.toggleFlash();
+              },
+              child: const Text("Toggle flash"),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -322,11 +368,11 @@ class _QrCodeScannerState extends State<QrCodeScanner> {
       key: qrKey,
       onQRViewCreated: _onQRViewCreated,
       overlay: QrScannerOverlayShape(
-        borderColor: const Color(0xFFFCCB01),
-        borderRadius: 10,
-        borderLength: 30,
-        borderWidth: 10,
         cutOutSize: scanArea,
+        borderColor: const Color(0xFFFCCB01),
+        borderRadius: 3.0,
+        borderWidth: 10.0,
+        borderLength: 30.0,
       ),
     );
   }
@@ -334,7 +380,7 @@ class _QrCodeScannerState extends State<QrCodeScanner> {
   void _onQRViewCreated(QRViewController controller) {
     String? prevText;
     setState(() {
-      this.controller = controller;
+      _QrCodeScannerState.controller = controller;
       controller.resumeCamera();
     });
     controller.scannedDataStream.listen((scanData) {
