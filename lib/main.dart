@@ -192,7 +192,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                 ),
               ),
               const SizedBox(
-                height: 10,
+                height: 5,
               ),
               failed == true
                   ? const SizedBox(
