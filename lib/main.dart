@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
+import 'package:mysql1/mysql1.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:attendify_/sql.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:open_file/open_file.dart';
 
 void main() async {
@@ -237,6 +241,25 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   static List<Widget> widgets = [];
   static List<String?> namesOfStudents = [];
+  var profilePic;
+  bool profilePicLoaded = false;
+
+  void checkPfpInDatabase(args) async {
+    Database db = Database();
+    var conn = await db.getConnection();
+    var result =
+        await conn.query("SELECT pfp FROM users_tbl WHERE fullname = '$args'");
+    for (var row in result) {
+      setState(() {
+        profilePic = base64Decode(
+          "${row[0].toString()}",
+        );
+      });
+    }
+
+    conn.close();
+  }
+
   @override
   void dispose() {
     widgets = [];
@@ -247,12 +270,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)!.settings.arguments as String;
     List<String> name = args.split(" ");
+    if (profilePicLoaded == false) {
+      checkPfpInDatabase(args);
+      profilePicLoaded = true;
+    }
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFFFCCB01),
-          title: const Text("Home Page"),
+          title: const Text(
+            "Home Page",
+          ),
           titleTextStyle: const TextStyle(
             fontFamily: "Muli-Bold",
             fontSize: 20,
@@ -313,6 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       'STUDENT';
                   attendanceSheet.cell(CellIndex.indexByString('B1')).value =
                       'TIME';
+                  // ignore: use_build_context_synchronously
                   showDialog(
                     context: context,
                     builder: (BuildContext context) => AlertDialog(
@@ -408,10 +438,38 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.all(10),
                           child: Row(
                             children: [
-                              CircleAvatar(
-                                radius: 50,
-                                child: Text("${name[0][0]}${name[1][0]}",
-                                    style: const TextStyle(fontSize: 30)),
+                              GestureDetector(
+                                onTap: () async {
+                                  var pickedImage = await ImagePicker()
+                                      .pickImage(source: ImageSource.gallery);
+                                  if (pickedImage != null) {
+                                    var bytes = await File(pickedImage.path)
+                                        .readAsBytes();
+                                    setState(
+                                      () {
+                                        profilePic = bytes;
+                                      },
+                                    );
+                                    var base64 = base64Encode(bytes);
+                                    var db = Database();
+                                    var conn = await db.getConnection();
+                                    conn.query(
+                                        "UPDATE users_tbl SET pfp = '$base64' WHERE fullname = '$args'");
+                                  }
+                                },
+                                child: profilePic == null
+                                    ? CircleAvatar(
+                                        radius: 50,
+                                        child: Text(
+                                          "${name[0][0]}${name[1][0]}",
+                                          style: const TextStyle(fontSize: 30),
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        radius: 50,
+                                        backgroundImage:
+                                            MemoryImage(profilePic),
+                                      ),
                               ),
                             ],
                           ),
@@ -569,17 +627,13 @@ class _QrCodeScannerState extends State<QrCodeScanner> {
                   ),
                 );
                 _HomeScreenState.widgets.add(
-                  Column(
-                    children: [
-                      ListTile(
-                        tileColor: Colors.yellow,
-                        title: Text(
-                          '${resultText?.split(':')[0]}::$hour:$minute',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        onTap: () => null,
-                      ),
-                    ],
+                  ListTile(
+                    tileColor: Colors.yellow,
+                    title: Text(
+                      '${resultText?.split(':')[0]}::$hour:$minute',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () => null,
                   ),
                 );
                 _HomeScreenState.namesOfStudents
