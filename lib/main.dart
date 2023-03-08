@@ -1,5 +1,8 @@
 import 'dart:io';
 import 'dart:convert';
+import 'firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:excel/excel.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
@@ -10,6 +13,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:open_file/open_file.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.android);
   runApp(const AttendanceApp());
 }
 
@@ -154,7 +159,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       setState(() {
                         loading = true;
                       });
-                      Database db = Database();
+                     Database db = Database();
                       var conn = await db.getConnection();
                       var result = await conn.query(
                           'SELECT fullname, username, password, role_id, users_tbl.user_id, flutter_teachers_tbl.teacher_id FROM users_tbl INNER JOIN flutter_teachers_tbl ON flutter_teachers_tbl.user_id = users_tbl.user_id WHERE username = "${usernameController.text}" AND password = "${passwordController.text}"');
@@ -388,162 +393,234 @@ class _HomeScreenState extends State<HomeScreen> {
                     decoration: const BoxDecoration(
                         color: Color(0xCC22395C),
                         borderRadius: BorderRadius.all(Radius.circular(20))),
-                    margin: EdgeInsets.all(30),
+                    margin: const EdgeInsets.all(20),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Flexible(
+                          fit: FlexFit.loose,
+                          flex: 1,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Container(
+                                margin: const EdgeInsets.only(
+                                    right: 20, bottom: 10, top: 10),
+                                child: ElevatedButton(
+                                    style: ButtonStyle(
+                                        backgroundColor:
+                                            MaterialStateColor.resolveWith(
+                                                (states) =>
+                                                    const Color(0xFFCBF7ED))),
+                                    onPressed: () async {
+                                      showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2023, 3),
+                                          lastDate: DateTime(2023, 7));
+                                    },
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.calendar_month_outlined,
+                                          color: Colors.black,
+                                        ),
+                                        Text(
+                                          " ${DateTime.now().year}-${DateTime.now().month}-${DateTime.now().day}",
+                                          style: const TextStyle(
+                                              color: Colors.black),
+                                        )
+                                      ],
+                                    )),
+                              )
+                            ],
+                          ),
+                        ),
+                        Flexible(
                             fit: FlexFit.loose,
-                            flex: 2,
-                            child: Row(
+                            flex: 3,
+                            child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Container(
-                                  decoration: BoxDecoration(
-                                      color: Colors.green.shade500,
-                                      borderRadius: const BorderRadius.all(
-                                          Radius.circular(30))),
-                                  margin: const EdgeInsets.only(
-                                      right: 10, bottom: 25),
-                                  width:
-                                      MediaQuery.of(context).size.width - 270,
-                                  height: 230,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (BuildContext context) {
-                                          return Scaffold(
-                                            appBar: AppBar(
-                                              backgroundColor:
-                                                  const Color(0xFF416E8E),
-                                            ),
-                                            body: Container(
-                                                decoration: const BoxDecoration(
-                                                  image: DecorationImage(
-                                                      image: AssetImage(
-                                                          "images/bg2.jpg"),
-                                                      fit: BoxFit.cover,
-                                                      colorFilter:
-                                                          ColorFilter.mode(
-                                                              Color(0xdd1C4274),
-                                                              BlendMode
-                                                                  .darken)),
+                                Flexible(
+                                  flex: 1,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        decoration: BoxDecoration(
+                                            color: Colors.green.shade500,
+                                            borderRadius:
+                                                const BorderRadius.all(
+                                                    Radius.circular(30))),
+                                        margin:
+                                            const EdgeInsets.only(right: 10),
+                                        width:
+                                            MediaQuery.of(context).size.width -
+                                                270,
+                                        height: 210,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(builder:
+                                                  (BuildContext context) {
+                                                return Scaffold(
+                                                  appBar: AppBar(
+                                                    backgroundColor:
+                                                        const Color(0xFF416E8E),
+                                                  ),
+                                                  body: Container(
+                                                      decoration:
+                                                          const BoxDecoration(
+                                                        image: DecorationImage(
+                                                            image: AssetImage(
+                                                                "images/bg2.jpg"),
+                                                            fit: BoxFit.cover,
+                                                            colorFilter:
+                                                                ColorFilter.mode(
+                                                                    Color(
+                                                                        0xdd1C4274),
+                                                                    BlendMode
+                                                                        .darken)),
+                                                      ),
+                                                      child: ListView(
+                                                        children: widgets,
+                                                      )),
+                                                );
+                                              }),
+                                            );
+                                          },
+                                          child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                const Text("PRESENT",
+                                                    style: TextStyle(
+                                                        fontFamily:
+                                                            "Muli-Bold")),
+                                                const Icon(Icons.person_sharp,
+                                                    size: 70),
+                                                Text(
+                                                  "${namesOfStudents.length}",
+                                                  style: const TextStyle(
+                                                      fontSize: 30),
+                                                )
+                                              ]),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (absentWidgets.isEmpty) {
+                                            for (var name in absentees) {
+                                              absentWidgets.add(
+                                                Container(
+                                                  margin:
+                                                      const EdgeInsets.all(8),
+                                                  child: Material(
+                                                      borderRadius:
+                                                          const BorderRadius
+                                                                  .all(
+                                                              Radius.circular(
+                                                                  20)),
+                                                      color: const Color(
+                                                          0xFFCBF7ED),
+                                                      child: ListTile(
+                                                          title: Text(name!))),
                                                 ),
-                                                child: ListView(
-                                                  children: widgets,
-                                                )),
-                                          );
-                                        }),
-                                      );
-                                    },
-                                    child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const Text("PRESENT",
-                                              style: TextStyle(
-                                                  fontFamily: "Muli-Bold")),
-                                          const Icon(Icons.person_sharp,
-                                              size: 70),
-                                          Text(
-                                            "${namesOfStudents.length}",
-                                            style:
-                                                const TextStyle(fontSize: 30),
-                                          )
-                                        ]),
+                                              );
+                                            }
+                                          }
+
+                                          Navigator.push(context,
+                                              MaterialPageRoute(
+                                            builder: (context) {
+                                              return Scaffold(
+                                                appBar: AppBar(
+                                                  backgroundColor:
+                                                      const Color(0xFF416E8E),
+                                                ),
+                                                body: Container(
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      image: DecorationImage(
+                                                          image: AssetImage(
+                                                              "images/bg2.jpg"),
+                                                          fit: BoxFit.cover,
+                                                          colorFilter:
+                                                              ColorFilter.mode(
+                                                                  Color(
+                                                                      0xdd1C4274),
+                                                                  BlendMode
+                                                                      .darken)),
+                                                    ),
+                                                    child: ListView(
+                                                        children:
+                                                            absentWidgets)),
+                                              );
+                                            },
+                                          ));
+                                        },
+                                        child: Container(
+                                            decoration: const BoxDecoration(
+                                                color: Color(0xFFDB4E4E),
+                                                borderRadius: BorderRadius.all(
+                                                    Radius.circular(30))),
+                                            margin: const EdgeInsets.only(
+                                              left: 10,
+                                            ),
+                                            width: MediaQuery.of(context)
+                                                    .size
+                                                    .width -
+                                                270,
+                                            height: 210,
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                const Text("ABSENT",
+                                                    style: TextStyle(
+                                                        fontFamily:
+                                                            "Muli-Bold")),
+                                                const Icon(Icons.person_off,
+                                                    size: 70),
+                                                Text("${absentees.length}",
+                                                    style: const TextStyle(
+                                                        fontFamily: "Muli-Bold",
+                                                        fontSize: 30))
+                                              ],
+                                            )),
+                                      )
+                                    ],
                                   ),
                                 ),
-                                GestureDetector(
-                                  onTap: () {
-                                    for (var name in absentees) {
-                                      absentWidgets.add(
-                                        Container(
-                                          margin: const EdgeInsets.all(8),
-                                          child: Material(
-                                              borderRadius:
-                                                  const BorderRadius.all(
-                                                      Radius.circular(20)),
-                                              color: const Color(0xFFCBF7ED),
-                                              child:
-                                                  ListTile(title: Text(name!))),
-                                        ),
-                                      );
-                                    }
-                                    Navigator.push(context, MaterialPageRoute(
-                                      builder: (context) {
-                                        return Scaffold(
-                                          appBar: AppBar(
-                                            backgroundColor:
-                                                const Color(0xFF416E8E),
-                                          ),
-                                          body: Container(
-                                              decoration: const BoxDecoration(
-                                                image: DecorationImage(
-                                                    image: AssetImage(
-                                                        "images/bg2.jpg"),
-                                                    fit: BoxFit.cover,
-                                                    colorFilter:
-                                                        ColorFilter.mode(
-                                                            Color(0xdd1C4274),
-                                                            BlendMode.darken)),
-                                              ),
-                                              child: ListView(
-                                                  children: absentWidgets)),
-                                        );
-                                      },
-                                    ));
-                                  },
-                                  child: Container(
-                                      decoration: const BoxDecoration(
-                                          color: Color(0xFFDB4E4E),
-                                          borderRadius: BorderRadius.all(
-                                              Radius.circular(30))),
-                                      margin: const EdgeInsets.only(
-                                          left: 10, bottom: 25),
-                                      width: MediaQuery.of(context).size.width -
-                                          270,
-                                      height: 230,
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const Text("ABSENT",
-                                              style: TextStyle(
-                                                  fontFamily: "Muli-Bold")),
-                                          const Icon(Icons.person_off,
-                                              size: 70),
-                                          Text("${absentees.length}",
-                                              style: const TextStyle(
-                                                  fontFamily: "Muli-Bold",
-                                                  fontSize: 30))
-                                        ],
-                                      )),
-                                )
                               ],
                             )),
                         Flexible(
                             fit: FlexFit.loose,
-                            flex: 1,
+                            flex: 2,
                             child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Container(
                                   margin: const EdgeInsets.symmetric(
                                       horizontal: 20, vertical: 10),
                                   child: Material(
-                                    color: Colors.white,
+                                    color: const Color(0xFFCBF7ED),
                                     borderRadius: const BorderRadius.all(
                                         Radius.circular(10)),
                                     child: ListTile(
-                                      title: const Text("Masterlist"),
+                                      title: const Text("Masterlist",
+                                          style: TextStyle(
+                                              fontFamily: "Muli-Bold")),
                                       onTap: () async {
                                         List<Widget> studentsList = [];
                                         if (studentsList.isEmpty) {
                                           var db = Database();
                                           var conn = await db.getConnection();
                                           var result = await conn.query(
-                                              "SELECT student_fullname FROM flutter_students_tbl WHERE teacher_id = ${args[2]}");
+                                              "SELECT student_fullname FROM flutter_students_tbl WHERE teacher_id = ${args[2]} ORDER BY student_fullname ASC");
                                           for (var row in result) {
                                             studentsList.add(
                                               Container(
@@ -606,13 +683,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 Container(
                                   margin: const EdgeInsets.symmetric(
-                                      horizontal: 20, vertical: 10),
+                                      horizontal: 20, vertical: 2),
                                   child: Material(
                                     borderRadius: const BorderRadius.all(
                                         Radius.circular(10)),
-                                    color: Colors.white,
+                                    color: const Color(0xFFCBF7ED),
                                     child: ListTile(
-                                      title: const Text("Export as Excel"),
+                                      title: const Text("Export as Excel",
+                                          style: TextStyle(
+                                              fontFamily: "Muli-Bold")),
                                       onTap: () async {
                                         Permission.accessMediaLocation
                                             .request();
@@ -707,6 +786,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     namesOfStudents: namesOfStudents,
                     absentees: absentees,
                     widgets: widgets,
+                    absentWidgets: absentWidgets,
                     teacher_id: args[2]),
               ),
             ),
@@ -834,6 +914,7 @@ class QrCodeScanner extends StatefulWidget {
   var absentees;
   var widgets;
   var teacher_id;
+  var absentWidgets;
 
   QrCodeScanner({
     super.key,
@@ -842,6 +923,7 @@ class QrCodeScanner extends StatefulWidget {
     required this.absentees,
     required this.widgets,
     required this.teacher_id,
+    required this.absentWidgets,
   });
 
   @override
@@ -965,7 +1047,17 @@ class _QrCodeScannerState extends State<QrCodeScanner> {
                 widget.namesOfStudents
                     .add("${resultText?.split(':')[0]}::$hour:$minute");
                 widget.absentees.remove("${resultText?.split(':')[0]}");
-                print("${resultText?.split(':')[0]}");
+                int counter = 0;
+                for (var row in widget.absentWidgets) {
+                  if (row.child.child.title.data ==
+                      "${resultText?.split(':')[0]}") {
+                    widget.absentWidgets.remove(row);
+                    break;
+                  }
+                  counter++;
+                }
+                print(
+                    "${resultText?.split(':')[0]}, ${widget.namesOfStudents[widget.namesOfStudents.length - 1]}");
                 print(
                     "namesOfStudents: ${widget.namesOfStudents.length}, absentees: ${widget.absentees.length}");
                 widget.addPresent();
