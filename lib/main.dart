@@ -159,7 +159,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                       setState(() {
                         loading = true;
                       });
-                     Database db = Database();
+                      Database db = Database();
                       var conn = await db.getConnection();
                       var result = await conn.query(
                           'SELECT fullname, username, password, role_id, users_tbl.user_id, flutter_teachers_tbl.teacher_id FROM users_tbl INNER JOIN flutter_teachers_tbl ON flutter_teachers_tbl.user_id = users_tbl.user_id WHERE username = "${usernameController.text}" AND password = "${passwordController.text}"');
@@ -244,13 +244,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Widget> widgets = [];
   List<Widget> absentWidgets = [];
   List<String?> namesOfStudents = [];
   List<String?> absentees = [];
-  late int lengthOfAbsentees;
-  late int lengthOfNamesOfStudents;
   var profilePic;
+  var time;
   bool profilePicLoaded = false;
   bool gotStudnets = false;
 
@@ -301,12 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  void dispose() {
-    widgets = [];
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     List<Object> args =
         ModalRoute.of(context)!.settings.arguments as List<Object>;
@@ -319,8 +311,6 @@ class _HomeScreenState extends State<HomeScreen> {
       getStudents(args[1]);
       gotStudnets = true;
     }
-    lengthOfAbsentees = absentees.length;
-    lengthOfNamesOfStudents = namesOfStudents.length;
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -472,22 +462,113 @@ class _HomeScreenState extends State<HomeScreen> {
                                                         const Color(0xFF416E8E),
                                                   ),
                                                   body: Container(
-                                                      decoration:
-                                                          const BoxDecoration(
-                                                        image: DecorationImage(
-                                                            image: AssetImage(
-                                                                "images/bg2.jpg"),
-                                                            fit: BoxFit.cover,
-                                                            colorFilter:
-                                                                ColorFilter.mode(
-                                                                    Color(
-                                                                        0xdd1C4274),
-                                                                    BlendMode
-                                                                        .darken)),
-                                                      ),
-                                                      child: ListView(
-                                                        children: widgets,
-                                                      )),
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                      image: DecorationImage(
+                                                          image: AssetImage(
+                                                              "images/bg2.jpg"),
+                                                          fit: BoxFit.cover,
+                                                          colorFilter:
+                                                              ColorFilter.mode(
+                                                                  Color(
+                                                                      0xdd1C4274),
+                                                                  BlendMode
+                                                                      .darken)),
+                                                    ),
+                                                    child: ListView.builder(
+                                                      itemCount: namesOfStudents
+                                                          .length,
+                                                      itemBuilder:
+                                                          (context, index) {
+                                                        return Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                      .only(
+                                                                  left: 8.0,
+                                                                  right: 8.0,
+                                                                  bottom: 8.0),
+                                                          child: Card(
+                                                            shape: const RoundedRectangleBorder(
+                                                                borderRadius: BorderRadius
+                                                                    .all(Radius
+                                                                        .circular(
+                                                                            20))),
+                                                            color: const Color(
+                                                                0xFFCBF7ED),
+                                                            child: ListTile(
+                                                              title: Text(
+                                                                namesOfStudents[
+                                                                        index]!
+                                                                    .split(
+                                                                        "::")[0],
+                                                              ),
+                                                              subtitle: Text(
+                                                                  'Time: ${namesOfStudents[index]!.split("::")[1]}'),
+                                                              onTap: () {
+                                                                TextEditingController
+                                                                    controller =
+                                                                    TextEditingController();
+                                                                controller
+                                                                        .text =
+                                                                    namesOfStudents[
+                                                                            index]!
+                                                                        .split(
+                                                                            "::")[1];
+                                                                showDialog(
+                                                                  context:
+                                                                      context,
+                                                                  builder:
+                                                                      (context) {
+                                                                    return AlertDialog(
+                                                                      title: const Text(
+                                                                          "Edit"),
+                                                                      content:
+                                                                          Row(
+                                                                        children: [
+                                                                          const Expanded(
+                                                                            child:
+                                                                                Text("Time: "),
+                                                                          ),
+                                                                          Expanded(
+                                                                            child:
+                                                                                TextField(
+                                                                              controller: controller,
+                                                                            ),
+                                                                          )
+                                                                        ],
+                                                                      ),
+                                                                      actions: [
+                                                                        TextButton(
+                                                                          child:
+                                                                              const Text("Ok"),
+                                                                          onPressed:
+                                                                              () {
+                                                                            setState(() {
+                                                                              namesOfStudents[index] = "${namesOfStudents[index]!.split('::')[0]}::${controller.text}";
+                                                                              namesOfStudents[index] = namesOfStudents[index];
+                                                                              Navigator.of(context).pop();
+                                                                            });
+                                                                          },
+                                                                        ),
+                                                                        TextButton(
+                                                                          child:
+                                                                              const Text("Cancel"),
+                                                                          onPressed:
+                                                                              () {
+                                                                            Navigator.of(context).pop();
+                                                                          },
+                                                                        )
+                                                                      ],
+                                                                    );
+                                                                  },
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
                                                 );
                                               }),
                                             );
@@ -782,12 +863,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Center(
                 child: QrCodeScanner(
-                    addPresent: addPresent,
-                    namesOfStudents: namesOfStudents,
-                    absentees: absentees,
-                    widgets: widgets,
-                    absentWidgets: absentWidgets,
-                    teacher_id: args[2]),
+                  addPresent: addPresent,
+                  namesOfStudents: namesOfStudents,
+                  absentees: absentees,
+                  absentWidgets: absentWidgets,
+                  teacher_id: args[2],
+                  homeScreenContext: context,
+                  time: time,
+                ),
               ),
             ),
           ],
@@ -912,18 +995,20 @@ class QrCodeScanner extends StatefulWidget {
   final Function addPresent;
   var namesOfStudents;
   var absentees;
-  var widgets;
   var teacher_id;
   var absentWidgets;
+  BuildContext homeScreenContext;
+  var time;
 
   QrCodeScanner({
     super.key,
     required this.addPresent,
     required this.namesOfStudents,
     required this.absentees,
-    required this.widgets,
     required this.teacher_id,
     required this.absentWidgets,
+    required this.homeScreenContext,
+    required this.time,
   });
 
   @override
@@ -969,10 +1054,7 @@ class _QrCodeScannerState extends State<QrCodeScanner> {
   }
 
   Widget _buildQrView(BuildContext context) {
-    var scanArea = (MediaQuery.of(context).size.width < 400 ||
-            MediaQuery.of(context).size.height < 400)
-        ? 150.0
-        : 300.0;
+    var scanArea = 300.0;
     return QRView(
       key: qrKey,
       onQRViewCreated: _onQRViewCreated,
@@ -1019,28 +1101,12 @@ class _QrCodeScannerState extends State<QrCodeScanner> {
                 var minute = DateTime.now().minute < 10
                     ? '0${DateTime.now().minute}'
                     : DateTime.now().minute;
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
                         "Name: ${resultText?.split(":")[0]}, Time: $hour:$minute, Teacher_ID: ${widget.teacher_id}"),
                     duration: const Duration(seconds: 2),
-                  ),
-                );
-                widget.widgets.add(
-                  Container(
-                    margin: const EdgeInsets.all(8),
-                    child: Material(
-                      borderRadius: const BorderRadius.all(Radius.circular(20)),
-                      color: const Color(0xFFCBF7ED),
-                      child: ListTile(
-                        subtitle: Text("Time: $hour:$minute"),
-                        title: Text(
-                          '${resultText?.split(':')[0]}',
-                          style: const TextStyle(color: Colors.black),
-                        ),
-                        onTap: () => null,
-                      ),
-                    ),
                   ),
                 );
 
